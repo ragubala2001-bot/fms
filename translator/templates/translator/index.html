@@ -1,0 +1,1148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Translator — Enterprise Translation Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        primary: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' },
+                        dark: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { scrollbar-width: thin; scrollbar-color: rgba(99,102,241,0.3) transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 3px; }
+
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-strong { background: rgba(255,255,255,0.06); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.1); }
+        .glow { box-shadow: 0 0 40px rgba(99,102,241,0.15), 0 0 80px rgba(99,102,241,0.05); }
+        .glow-sm { box-shadow: 0 0 20px rgba(99,102,241,0.1); }
+
+        @keyframes pulse-glow { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes typing { from { width: 0; } to { width: 100%; } }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes wave-anim { 0% { transform: scaleY(0.5); } 50% { transform: scaleY(1.5); } 100% { transform: scaleY(0.5); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        .animate-slide-up { animation: slide-up 0.5s ease-out; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        .cursor-blink::after { content: '▊'; animation: blink 0.8s infinite; color: #6366f1; font-weight: 300; }
+        .streaming .cursor-blink::after { content: '▊'; }
+
+        .wave-bar { display: inline-block; width: 3px; margin: 0 1.5px; border-radius: 2px; background: #6366f1; animation: wave-anim 0.6s ease-in-out infinite; }
+
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-btn.active { background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.5); }
+        .tab-btn:not(.active):hover { background: rgba(255,255,255,0.05); }
+
+        .lang-option:hover { background: rgba(99,102,241,0.15); }
+        .lang-option.selected { background: rgba(99,102,241,0.2); border-left: 3px solid #6366f1; }
+
+        .drop-zone { transition: all 0.3s ease; }
+        .drop-zone.dragover { border-color: #6366f1; background: rgba(99,102,241,0.1); transform: scale(1.01); }
+
+        .shimmer { background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.08) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2s infinite; }
+
+        textarea { resize: none; }
+        textarea:focus { outline: none; }
+        input:focus { outline: none; }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.connected { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+        .status-dot.disconnected { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+        .status-dot.connecting { background: #eab308; animation: pulse-glow 1.5s infinite; }
+    </style>
+</head>
+<body class="bg-dark-950 text-dark-100 font-sans min-h-screen">
+
+<!-- Background gradient -->
+<div class="fixed inset-0 pointer-events-none">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary-600/5 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl"></div>
+</div>
+
+<div class="relative z-10">
+
+<!-- Header -->
+<header class="border-b border-white/5 bg-dark-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight">AI Translator</h1>
+                    <p class="text-[10px] text-dark-400 -mt-0.5 tracking-wider uppercase">Enterprise Platform</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="ws-status" class="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs">
+                    <div class="status-dot connecting" id="status-dot"></div>
+                    <span id="status-text" class="text-dark-400">Connecting...</span>
+                </div>
+                <div class="text-xs text-dark-500">Powered by OpenAI</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Tab Navigation -->
+<nav class="border-b border-white/5 bg-dark-950/50 backdrop-blur-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex gap-1 py-2 overflow-x-auto">
+            <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium border border-transparent whitespace-nowrap" data-tab="text" onclick="switchTab('text')">
+                <span class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Text
+                </span>
+            </button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-dark-400 border border-transparent whitespace-nowrap" data-tab="voice" onclick="switchTab('voice')">
+                <span class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                    Voice
+                </span>
+            </button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-dark-400 border border-transparent whitespace-nowrap" data-tab="file" onclick="switchTab('file')">
+                <span class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    Files
+                </span>
+            </button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-dark-400 border border-transparent whitespace-nowrap" data-tab="ocr" onclick="switchTab('ocr')">
+                <span class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    OCR Image
+                </span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+<!-- ==================== TEXT TRANSLATION TAB ==================== -->
+<div id="tab-text" class="tab-content animate-slide-up">
+
+    <!-- Language Selector Bar -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+        <!-- Source Language -->
+        <div class="flex-1">
+            <div class="glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">From</span>
+                <div id="detected-lang-badge" class="flex items-center gap-2 px-3 py-1 rounded-lg bg-primary-500/10 border border-primary-500/20 text-sm text-primary-300 animate-fade-in hidden">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span id="detected-lang-text">Auto Detect</span>
+                </div>
+                <div class="relative flex-1" id="source-lang-container">
+                    <input type="text" id="source-lang-search" class="w-full bg-transparent text-sm text-dark-200 placeholder-dark-500 focus:placeholder-dark-400" placeholder="Auto Detect" autocomplete="off">
+                    <div id="source-lang-dropdown" class="absolute top-full left-0 right-0 mt-2 glass-strong rounded-xl max-h-64 overflow-y-auto z-50 hidden">
+                        <div class="p-1" id="source-lang-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Swap Button -->
+        <button id="swap-btn" onclick="swapLanguages()" class="self-center p-2.5 rounded-xl glass hover:bg-primary-500/10 transition-all hover:scale-110 active:scale-95">
+            <svg class="w-5 h-5 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        </button>
+
+        <!-- Target Language -->
+        <div class="flex-1">
+            <div class="glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">To</span>
+                <div class="relative flex-1" id="target-lang-container">
+                    <input type="text" id="target-lang-search" class="w-full bg-transparent text-sm text-dark-200 placeholder-dark-500 focus:placeholder-dark-400" placeholder="Select language..." autocomplete="off" value="Tamil — தமிழ்">
+                    <div id="target-lang-dropdown" class="absolute top-full left-0 right-0 mt-2 glass-strong rounded-xl max-h-64 overflow-y-auto z-50 hidden">
+                        <div class="p-1" id="target-lang-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Translation Panels -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Source Panel -->
+        <div class="glass rounded-2xl glow-sm overflow-hidden">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium">Source Text</span>
+                <div class="flex items-center gap-2">
+                    <span id="char-count" class="text-xs text-dark-500">0 characters</span>
+                    <button onclick="clearSource()" class="p-1.5 rounded-lg hover:bg-white/5 text-dark-500 hover:text-dark-300 transition-colors" title="Clear">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+            <textarea id="source-text" class="w-full bg-transparent p-5 text-dark-100 text-base leading-relaxed min-h-[300px] lg:min-h-[400px]" placeholder="Type or paste text to translate..."></textarea>
+        </div>
+
+        <!-- Target Panel -->
+        <div class="glass rounded-2xl glow-sm overflow-hidden">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-dark-400 uppercase tracking-wider font-medium">Translation</span>
+                    <div id="streaming-indicator" class="hidden flex items-center gap-1.5 text-xs text-primary-400">
+                        <div class="flex items-center gap-0.5 h-3">
+                            <div class="wave-bar h-2" style="animation-delay:0s"></div>
+                            <div class="wave-bar h-3" style="animation-delay:0.1s"></div>
+                            <div class="wave-bar h-2" style="animation-delay:0.2s"></div>
+                            <div class="wave-bar h-3" style="animation-delay:0.3s"></div>
+                        </div>
+                        <span>Translating...</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="copyTranslation()" class="p-1.5 rounded-lg hover:bg-white/5 text-dark-500 hover:text-dark-300 transition-colors" title="Copy">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </button>
+                    <button onclick="speakTranslation()" class="p-1.5 rounded-lg hover:bg-white/5 text-dark-500 hover:text-dark-300 transition-colors" title="Listen">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="target-text" class="p-5 text-dark-100 text-base leading-relaxed min-h-[300px] lg:min-h-[400px] whitespace-pre-wrap break-words">
+                <span class="text-dark-600">Translation will appear here...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== VOICE TRANSLATION TAB ==================== -->
+<div id="tab-voice" class="tab-content hidden animate-slide-up">
+    <div class="max-w-4xl mx-auto">
+        <div class="glass rounded-2xl glow p-6 sm:p-8">
+            <!-- Voice Language Selectors -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-8">
+                <div class="flex-1 glass rounded-xl px-4 py-3 flex items-center gap-3">
+                    <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">From</span>
+                    <div id="voice-detected-lang" class="text-sm text-primary-300">Auto Detect</div>
+                </div>
+                <div class="self-center">
+                    <svg class="w-5 h-5 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </div>
+                <div class="flex-1 glass rounded-xl px-4 py-3 flex items-center gap-3">
+                    <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">To</span>
+                    <select id="voice-target-lang" class="flex-1 bg-transparent text-sm text-dark-200 border-none cursor-pointer"></select>
+                </div>
+            </div>
+
+            <!-- Microphone Button -->
+            <div class="flex flex-col items-center gap-6 mb-8">
+                <button id="mic-btn" onclick="toggleVoiceRecording()" class="relative w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary-500/25">
+                    <svg id="mic-icon" class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                    <svg id="mic-stop-icon" class="w-10 h-10 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                    <div id="mic-pulse" class="absolute inset-0 rounded-full border-2 border-primary-400 opacity-0 scale-100"></div>
+                </button>
+                <div id="voice-status" class="text-sm text-dark-400">Click the microphone to start speaking</div>
+
+                <!-- Waveform -->
+                <div id="voice-waveform" class="hidden flex items-center justify-center gap-0.5 h-12">
+                    <div class="wave-bar h-4" style="animation-delay:0s"></div>
+                    <div class="wave-bar h-6" style="animation-delay:0.05s"></div>
+                    <div class="wave-bar h-8" style="animation-delay:0.1s"></div>
+                    <div class="wave-bar h-10" style="animation-delay:0.15s"></div>
+                    <div class="wave-bar h-8" style="animation-delay:0.2s"></div>
+                    <div class="wave-bar h-12" style="animation-delay:0.25s"></div>
+                    <div class="wave-bar h-8" style="animation-delay:0.3s"></div>
+                    <div class="wave-bar h-10" style="animation-delay:0.35s"></div>
+                    <div class="wave-bar h-6" style="animation-delay:0.4s"></div>
+                    <div class="wave-bar h-8" style="animation-delay:0.45s"></div>
+                    <div class="wave-bar h-4" style="animation-delay:0.5s"></div>
+                    <div class="wave-bar h-6" style="animation-delay:0.55s"></div>
+                    <div class="wave-bar h-10" style="animation-delay:0.6s"></div>
+                    <div class="wave-bar h-8" style="animation-delay:0.65s"></div>
+                    <div class="wave-bar h-4" style="animation-delay:0.7s"></div>
+                </div>
+            </div>
+
+            <!-- Voice Results -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass rounded-xl p-4">
+                    <div class="text-xs text-dark-400 uppercase tracking-wider font-medium mb-3">Recognized Speech</div>
+                    <div id="voice-source-text" class="text-dark-200 text-sm min-h-[120px] whitespace-pre-wrap">
+                        <span class="text-dark-600">Your speech will appear here...</span>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-xs text-dark-400 uppercase tracking-wider font-medium">Translation</div>
+                        <button onclick="speakVoiceTranslation()" class="p-1.5 rounded-lg hover:bg-white/5 text-dark-500 hover:text-dark-300 transition-colors" title="Play translation">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                        </button>
+                    </div>
+                    <div id="voice-target-text" class="text-dark-200 text-sm min-h-[120px] whitespace-pre-wrap">
+                        <span class="text-dark-600">Translation will appear here...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== FILE TRANSLATION TAB ==================== -->
+<div id="tab-file" class="tab-content hidden animate-slide-up">
+    <div class="max-w-4xl mx-auto">
+        <!-- Upload Zone -->
+        <div id="file-drop-zone" class="drop-zone glass rounded-2xl glow p-8 sm:p-12 text-center cursor-pointer border-2 border-dashed border-white/10 hover:border-primary-500/30 mb-6" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(event)" accept=".pdf,.docx,.pptx,.xlsx,.txt,.csv,.json,.xml,.html,.htm,.md,.markdown,.srt,.png,.jpg,.jpeg,.gif,.webp,.bmp">
+            <div class="flex flex-col items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                </div>
+                <div>
+                    <p class="text-lg font-medium text-dark-200">Drop your file here or click to upload</p>
+                    <p class="text-sm text-dark-400 mt-1">PDF, DOCX, PPTX, XLSX, TXT, CSV, JSON, XML, HTML, MD, SRT, Images</p>
+                </div>
+                <div class="text-xs text-dark-500">Maximum file size: 50MB</div>
+            </div>
+        </div>
+
+        <!-- File Language Selection -->
+        <div id="file-lang-bar" class="hidden flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+            <div class="flex-1 glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">Detected</span>
+                <span id="file-detected-lang" class="text-sm text-primary-300">—</span>
+            </div>
+            <div class="self-center">
+                <svg class="w-5 h-5 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </div>
+            <div class="flex-1 glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">Translate to</span>
+                <select id="file-target-lang" class="flex-1 bg-transparent text-sm text-dark-200 border-none cursor-pointer"></select>
+            </div>
+        </div>
+
+        <!-- File Info & Preview -->
+        <div id="file-info-card" class="hidden glass rounded-2xl overflow-hidden mb-6">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <div id="file-name" class="text-sm font-medium text-dark-200"></div>
+                        <div id="file-size" class="text-xs text-dark-500"></div>
+                    </div>
+                </div>
+                <button onclick="clearFile()" class="p-2 rounded-lg hover:bg-white/5 text-dark-500 hover:text-dark-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="file-preview" class="p-4 max-h-48 overflow-y-auto text-sm text-dark-300 whitespace-pre-wrap"></div>
+        </div>
+
+        <!-- Translate Button -->
+        <div id="file-translate-btn-wrapper" class="hidden text-center mb-6">
+            <button id="file-translate-btn" onclick="translateFile()" class="px-8 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-700 text-white font-medium hover:shadow-lg hover:shadow-primary-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                <span id="file-translate-label">Translate Document</span>
+                <span id="file-translate-spinner" class="hidden">
+                    <svg class="animate-spin inline w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Translating...
+                </span>
+            </button>
+        </div>
+
+        <!-- Translation Result -->
+        <div id="file-result" class="hidden glass rounded-2xl glow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-dark-200">Translation Complete</h3>
+                <button id="file-download-btn" onclick="downloadTranslatedFile()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-medium hover:shadow-lg transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Download
+                </button>
+            </div>
+            <div id="file-result-preview" class="text-sm text-dark-300 whitespace-pre-wrap max-h-64 overflow-y-auto"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== OCR IMAGE TRANSLATION TAB ==================== -->
+<div id="tab-ocr" class="tab-content hidden animate-slide-up">
+    <div class="max-w-4xl mx-auto">
+        <!-- Image Upload Zone -->
+        <div id="ocr-drop-zone" class="drop-zone glass rounded-2xl glow p-8 sm:p-12 text-center cursor-pointer border-2 border-dashed border-white/10 hover:border-primary-500/30 mb-6" onclick="document.getElementById('ocr-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleOCRDrop(event)">
+            <input type="file" id="ocr-input" class="hidden" onchange="handleOCRSelect(event)" accept="image/*">
+            <div class="flex flex-col items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <p class="text-lg font-medium text-dark-200">Drop an image or click to upload</p>
+                    <p class="text-sm text-dark-400 mt-1">Screenshots, scanned documents, posters, memes, photos with text</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- OCR Language Selection -->
+        <div id="ocr-lang-bar" class="hidden flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+            <div class="flex-1 glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">Detected</span>
+                <span id="ocr-detected-lang" class="text-sm text-primary-300">—</span>
+            </div>
+            <div class="self-center">
+                <svg class="w-5 h-5 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </div>
+            <div class="flex-1 glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium shrink-0">Translate to</span>
+                <select id="ocr-target-lang" class="flex-1 bg-transparent text-sm text-dark-200 border-none cursor-pointer"></select>
+            </div>
+        </div>
+
+        <!-- Image Preview -->
+        <div id="ocr-preview" class="hidden glass rounded-2xl overflow-hidden mb-6">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+                <span class="text-xs text-dark-400 uppercase tracking-wider font-medium">Image Preview</span>
+                <button onclick="clearOCR()" class="p-2 rounded-lg hover:bg-white/5 text-dark-500 hover:text-dark-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-4 flex justify-center">
+                <img id="ocr-image-preview" class="max-h-64 rounded-lg object-contain" src="" alt="Preview">
+            </div>
+        </div>
+
+        <!-- OCR Translate Button -->
+        <div id="ocr-translate-btn-wrapper" class="hidden text-center mb-6">
+            <button id="ocr-translate-btn" onclick="translateOCR()" class="px-8 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-700 text-white font-medium hover:shadow-lg hover:shadow-primary-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                <span id="ocr-translate-label">Extract & Translate</span>
+                <span id="ocr-translate-spinner" class="hidden">
+                    <svg class="animate-spin inline w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Processing...
+                </span>
+            </button>
+        </div>
+
+        <!-- OCR Result -->
+        <div id="ocr-result" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass rounded-2xl p-5">
+                    <div class="text-xs text-dark-400 uppercase tracking-wider font-medium mb-3">Extracted Text (OCR)</div>
+                    <div id="ocr-extracted-text" class="text-dark-200 text-sm whitespace-pre-wrap min-h-[150px]"></div>
+                </div>
+                <div class="glass rounded-2xl glow-sm p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-xs text-dark-400 uppercase tracking-wider font-medium">Translation</div>
+                        <button onclick="copyOCRTranslation()" class="p-1.5 rounded-lg hover:bg-white/5 text-dark-500 hover:text-dark-300 transition-colors" title="Copy">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="ocr-translated-text" class="text-dark-200 text-sm whitespace-pre-wrap min-h-[150px]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</main>
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+    <div class="glass-strong rounded-xl px-4 py-3 text-sm text-dark-200 animate-slide-up shadow-xl">
+        <span id="toast-msg"></span>
+    </div>
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+let ws = null;
+let languages = [];
+let selectedSourceLang = 'auto';
+let selectedTargetLang = 'ta';
+let debounceTimer = null;
+let requestCounter = 0;
+let isRecording = false;
+let recognition = null;
+let currentFileData = null;
+let currentOCRFile = null;
+let translatedFileBlob = null;
+let translatedFileName = '';
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    fetchLanguages();
+    connectWebSocket();
+    setupSourceTextListener();
+    setupLanguageDropdowns();
+});
+
+async function fetchLanguages() {
+    try {
+        const resp = await fetch('/api/languages/');
+        const data = await resp.json();
+        languages = data.languages;
+        populateLanguageDropdowns();
+        populateSelectElements();
+    } catch (e) {
+        console.error('Failed to fetch languages:', e);
+    }
+}
+
+function populateSelectElements() {
+    const selects = ['voice-target-lang', 'file-target-lang', 'ocr-target-lang'];
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = '';
+        languages.forEach(lang => {
+            const opt = document.createElement('option');
+            opt.value = lang.code;
+            opt.textContent = `${lang.name} — ${lang.native}`;
+            if (lang.code === 'ta') opt.selected = true;
+            el.appendChild(opt);
+        });
+    });
+}
+
+// ============================================================
+// WEBSOCKET
+// ============================================================
+function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/translate/`;
+
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        document.getElementById('status-dot').className = 'status-dot connected';
+        document.getElementById('status-text').textContent = 'Connected';
+    };
+
+    ws.onclose = () => {
+        document.getElementById('status-dot').className = 'status-dot disconnected';
+        document.getElementById('status-text').textContent = 'Disconnected';
+        setTimeout(connectWebSocket, 3000);
+    };
+
+    ws.onerror = () => {
+        document.getElementById('status-dot').className = 'status-dot disconnected';
+        document.getElementById('status-text').textContent = 'Error';
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleWSMessage(data);
+    };
+}
+
+function handleWSMessage(data) {
+    switch (data.type) {
+        case 'detection':
+            showDetectedLanguage(data.language, data.code);
+            break;
+        case 'translation_start':
+            document.getElementById('streaming-indicator').classList.remove('hidden');
+            document.getElementById('target-text').innerHTML = '';
+            document.getElementById('target-text').classList.add('streaming');
+            break;
+        case 'translation_chunk':
+            const targetEl = document.getElementById('target-text');
+            targetEl.innerHTML = escapeHtml(data.full_text) + '<span class="cursor-blink"></span>';
+            break;
+        case 'translation_complete':
+            document.getElementById('streaming-indicator').classList.add('hidden');
+            const el = document.getElementById('target-text');
+            el.classList.remove('streaming');
+            el.innerHTML = escapeHtml(data.translated_text || '');
+            break;
+        case 'error':
+            document.getElementById('streaming-indicator').classList.add('hidden');
+            showToast('Translation error: ' + data.message);
+            break;
+        case 'cancelled':
+            document.getElementById('streaming-indicator').classList.add('hidden');
+            break;
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+}
+
+// ============================================================
+// TEXT TRANSLATION
+// ============================================================
+function setupSourceTextListener() {
+    const textarea = document.getElementById('source-text');
+
+    textarea.addEventListener('input', () => {
+        const text = textarea.value;
+        document.getElementById('char-count').textContent = `${text.length} characters`;
+
+        clearTimeout(debounceTimer);
+
+        if (!text.trim()) {
+            document.getElementById('target-text').innerHTML = '<span class="text-dark-600">Translation will appear here...</span>';
+            document.getElementById('streaming-indicator').classList.add('hidden');
+            document.getElementById('detected-lang-badge').classList.add('hidden');
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            requestCounter++;
+            const reqId = `req_${requestCounter}`;
+
+            // Detect language
+            if (selectedSourceLang === 'auto' && text.length > 2) {
+                sendWS({ action: 'detect', text: text.substring(0, 200) });
+            }
+
+            // Translate
+            sendWS({
+                action: 'translate',
+                text: text,
+                target_language: selectedTargetLang,
+                source_language: selectedSourceLang,
+                request_id: reqId
+            });
+        }, 400);
+    });
+}
+
+function sendWS(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
+    }
+}
+
+function showDetectedLanguage(language, code) {
+    const badge = document.getElementById('detected-lang-badge');
+    const text = document.getElementById('detected-lang-text');
+    text.textContent = language;
+    badge.classList.remove('hidden');
+}
+
+function clearSource() {
+    document.getElementById('source-text').value = '';
+    document.getElementById('char-count').textContent = '0 characters';
+    document.getElementById('target-text').innerHTML = '<span class="text-dark-600">Translation will appear here...</span>';
+    document.getElementById('detected-lang-badge').classList.add('hidden');
+    document.getElementById('streaming-indicator').classList.add('hidden');
+}
+
+function copyTranslation() {
+    const el = document.getElementById('target-text');
+    const text = el.innerText;
+    if (text && text !== 'Translation will appear here...') {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
+    }
+}
+
+function speakTranslation() {
+    const el = document.getElementById('target-text');
+    const text = el.innerText;
+    if (text && text !== 'Translation will appear here...' && 'speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        const langMap = {};
+        languages.forEach(l => { langMap[l.code] = l.code; });
+        utterance.lang = selectedTargetLang;
+        speechSynthesis.speak(utterance);
+    }
+}
+
+function swapLanguages() {
+    if (selectedSourceLang === 'auto') return;
+    const temp = selectedSourceLang;
+    selectedSourceLang = selectedTargetLang;
+    selectedTargetLang = temp;
+
+    const srcInput = document.getElementById('source-lang-search');
+    const tgtInput = document.getElementById('target-lang-search');
+    const srcLang = languages.find(l => l.code === selectedSourceLang);
+    const tgtLang = languages.find(l => l.code === selectedTargetLang);
+    srcInput.value = srcLang ? `${srcLang.name} — ${srcLang.native}` : '';
+    tgtInput.value = tgtLang ? `${tgtLang.name} — ${tgtLang.native}` : '';
+
+    // Swap text content
+    const sourceText = document.getElementById('source-text').value;
+    const targetText = document.getElementById('target-text').innerText;
+    if (targetText && targetText !== 'Translation will appear here...') {
+        document.getElementById('source-text').value = targetText;
+        document.getElementById('source-text').dispatchEvent(new Event('input'));
+    }
+}
+
+// ============================================================
+// LANGUAGE DROPDOWNS
+// ============================================================
+function setupLanguageDropdowns() {
+    setupDropdown('source-lang-search', 'source-lang-dropdown', 'source-lang-list', (lang) => {
+        selectedSourceLang = lang.code;
+        document.getElementById('source-lang-search').value = `${lang.name} — ${lang.native}`;
+        document.getElementById('source-lang-dropdown').classList.add('hidden');
+        retranslate();
+    });
+
+    setupDropdown('target-lang-search', 'target-lang-dropdown', 'target-lang-list', (lang) => {
+        selectedTargetLang = lang.code;
+        document.getElementById('target-lang-search').value = `${lang.name} — ${lang.native}`;
+        document.getElementById('target-lang-dropdown').classList.add('hidden');
+        retranslate();
+    });
+}
+
+function setupDropdown(inputId, dropdownId, listId, onSelect) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+
+    input.addEventListener('focus', () => {
+        populateDropdownList(listId, '', onSelect);
+        dropdown.classList.remove('hidden');
+    });
+
+    input.addEventListener('input', () => {
+        populateDropdownList(listId, input.value, onSelect);
+        dropdown.classList.remove('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${dropdownId}`)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+}
+
+function populateDropdownList(listId, filter, onSelect) {
+    const list = document.getElementById(listId);
+    list.innerHTML = '';
+
+    // Add Auto Detect option for source
+    if (listId === 'source-lang-list') {
+        const autoDiv = document.createElement('div');
+        autoDiv.className = `lang-option px-3 py-2 rounded-lg cursor-pointer text-sm text-dark-300 hover:text-dark-100 transition-colors ${selectedSourceLang === 'auto' ? 'selected' : ''}`;
+        autoDiv.innerHTML = '<span class="text-primary-400">Auto Detect</span>';
+        autoDiv.addEventListener('click', () => {
+            selectedSourceLang = 'auto';
+            document.getElementById('source-lang-search').value = '';
+            document.getElementById('source-lang-search').placeholder = 'Auto Detect';
+            document.getElementById('source-lang-dropdown').classList.add('hidden');
+            retranslate();
+        });
+        list.appendChild(autoDiv);
+    }
+
+    const filtered = languages.filter(l => {
+        if (!filter) return true;
+        const q = filter.toLowerCase();
+        return l.name.toLowerCase().includes(q) || l.native.toLowerCase().includes(q) || l.code.toLowerCase().includes(q);
+    });
+
+    filtered.forEach(lang => {
+        const div = document.createElement('div');
+        const isSelected = (listId === 'source-lang-list' && lang.code === selectedSourceLang) ||
+                           (listId === 'target-lang-list' && lang.code === selectedTargetLang);
+        div.className = `lang-option px-3 py-2 rounded-lg cursor-pointer text-sm text-dark-300 hover:text-dark-100 transition-colors ${isSelected ? 'selected' : ''}`;
+        div.innerHTML = `<span class="text-dark-200">${lang.name}</span> <span class="text-dark-500">— ${lang.native}</span>`;
+        div.addEventListener('click', () => onSelect(lang));
+        list.appendChild(div);
+    });
+}
+
+function populateLanguageDropdowns() {
+    // Set initial target language display
+    const tgtLang = languages.find(l => l.code === selectedTargetLang);
+    if (tgtLang) {
+        document.getElementById('target-lang-search').value = `${tgtLang.name} — ${tgtLang.native}`;
+    }
+}
+
+function retranslate() {
+    const text = document.getElementById('source-text').value;
+    if (text.trim()) {
+        document.getElementById('source-text').dispatchEvent(new Event('input'));
+    }
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('active');
+        el.classList.add('text-dark-400');
+    });
+
+    document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    btn.classList.add('active');
+    btn.classList.remove('text-dark-400');
+}
+
+// ============================================================
+// VOICE TRANSLATION
+// ============================================================
+function toggleVoiceRecording() {
+    if (isRecording) {
+        stopVoiceRecording();
+    } else {
+        startVoiceRecording();
+    }
+}
+
+function startVoiceRecording() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showToast('Speech recognition is not supported in this browser');
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+        isRecording = true;
+        document.getElementById('mic-icon').classList.add('hidden');
+        document.getElementById('mic-stop-icon').classList.remove('hidden');
+        document.getElementById('mic-btn').classList.add('ring-4', 'ring-red-500/30');
+        document.getElementById('mic-pulse').style.animation = 'pulse-glow 1.5s infinite';
+        document.getElementById('mic-pulse').style.opacity = '1';
+        document.getElementById('voice-waveform').classList.remove('hidden');
+        document.getElementById('voice-status').textContent = 'Listening... Speak now';
+    };
+
+    recognition.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = 0; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
+
+        const fullText = finalTranscript + interimTranscript;
+        document.getElementById('voice-source-text').textContent = fullText;
+
+        if (finalTranscript) {
+            translateVoiceText(finalTranscript);
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        stopVoiceRecording();
+        showToast('Microphone error: ' + event.error);
+    };
+
+    recognition.onend = () => {
+        if (isRecording) {
+            recognition.start();
+        }
+    };
+
+    recognition.start();
+}
+
+function stopVoiceRecording() {
+    isRecording = false;
+    if (recognition) {
+        recognition.stop();
+        recognition = null;
+    }
+
+    document.getElementById('mic-icon').classList.remove('hidden');
+    document.getElementById('mic-stop-icon').classList.add('hidden');
+    document.getElementById('mic-btn').classList.remove('ring-4', 'ring-red-500/30');
+    document.getElementById('mic-pulse').style.animation = '';
+    document.getElementById('mic-pulse').style.opacity = '0';
+    document.getElementById('voice-waveform').classList.add('hidden');
+    document.getElementById('voice-status').textContent = 'Click the microphone to start speaking';
+}
+
+async function translateVoiceText(text) {
+    const targetLang = document.getElementById('voice-target-lang').value;
+    try {
+        const resp = await fetch('/api/translate/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                target_language: targetLang,
+                source_language: 'auto'
+            })
+        });
+        const data = await resp.json();
+        document.getElementById('voice-target-text').textContent = data.translated_text;
+
+        // Auto-detect language display
+        const detectResp = await fetch('/api/detect/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text.substring(0, 200) })
+        });
+        const detectData = await detectResp.json();
+        document.getElementById('voice-detected-lang').textContent = detectData.language || 'Unknown';
+    } catch (e) {
+        console.error('Voice translation error:', e);
+    }
+}
+
+function speakVoiceTranslation() {
+    const text = document.getElementById('voice-target-text').textContent;
+    if (text && text !== 'Translation will appear here...' && 'speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        const targetLang = document.getElementById('voice-target-lang').value;
+        utterance.lang = targetLang;
+        speechSynthesis.speak(utterance);
+    }
+}
+
+// ============================================================
+// FILE TRANSLATION
+// ============================================================
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('dragover');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) processFile(files[0]);
+}
+
+function handleFileSelect(e) {
+    const files = e.target.files;
+    if (files.length > 0) processFile(files[0]);
+}
+
+async function processFile(file) {
+    currentFileData = file;
+
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-size').textContent = formatFileSize(file.size);
+    document.getElementById('file-info-card').classList.remove('hidden');
+    document.getElementById('file-lang-bar').classList.remove('hidden');
+    document.getElementById('file-translate-btn-wrapper').classList.remove('hidden');
+    document.getElementById('file-result').classList.add('hidden');
+
+    // Preview file content
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const resp = await fetch('/api/file/preview/', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        document.getElementById('file-preview').textContent = data.text || 'No preview available';
+        if (data.detected_language && data.detected_language.language) {
+            document.getElementById('file-detected-lang').textContent = data.detected_language.language;
+        }
+    } catch (e) {
+        document.getElementById('file-preview').textContent = 'Preview not available';
+    }
+}
+
+async function translateFile() {
+    if (!currentFileData) return;
+
+    const btn = document.getElementById('file-translate-btn');
+    const label = document.getElementById('file-translate-label');
+    const spinner = document.getElementById('file-translate-spinner');
+    btn.disabled = true;
+    label.classList.add('hidden');
+    spinner.classList.remove('hidden');
+
+    try {
+        const targetLang = document.getElementById('file-target-lang').value;
+        const formData = new FormData();
+        formData.append('file', currentFileData);
+        formData.append('target_language', targetLang);
+        formData.append('source_language', 'auto');
+
+        const resp = await fetch('/api/translate/file/', { method: 'POST', body: formData });
+
+        if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Translation failed');
+        }
+
+        const disposition = resp.headers.get('Content-Disposition');
+        translatedFileName = disposition ? disposition.split('filename=')[1].replace(/"/g, '') : `translated_${currentFileData.name}`;
+
+        const blob = await resp.blob();
+        translatedFileBlob = blob;
+
+        // Show result
+        const text = await blob.text();
+        document.getElementById('file-result-preview').textContent = text.substring(0, 3000) + (text.length > 3000 ? '\n\n... (truncated)' : '');
+        document.getElementById('file-result').classList.remove('hidden');
+
+        showToast('File translated successfully!');
+    } catch (e) {
+        showToast('Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        label.classList.remove('hidden');
+        spinner.classList.add('hidden');
+    }
+}
+
+function downloadTranslatedFile() {
+    if (!translatedFileBlob) return;
+    const url = URL.createObjectURL(translatedFileBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = translatedFileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function clearFile() {
+    currentFileData = null;
+    translatedFileBlob = null;
+    translatedFileName = '';
+    document.getElementById('file-input').value = '';
+    document.getElementById('file-info-card').classList.add('hidden');
+    document.getElementById('file-lang-bar').classList.add('hidden');
+    document.getElementById('file-translate-btn-wrapper').classList.add('hidden');
+    document.getElementById('file-result').classList.add('hidden');
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ============================================================
+// OCR IMAGE TRANSLATION
+// ============================================================
+function handleOCRDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) processOCRImage(files[0]);
+}
+
+function handleOCRSelect(e) {
+    const files = e.target.files;
+    if (files.length > 0) processOCRImage(files[0]);
+}
+
+function processOCRImage(file) {
+    currentOCRFile = file;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('ocr-image-preview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    document.getElementById('ocr-preview').classList.remove('hidden');
+    document.getElementById('ocr-lang-bar').classList.remove('hidden');
+    document.getElementById('ocr-translate-btn-wrapper').classList.remove('hidden');
+    document.getElementById('ocr-result').classList.add('hidden');
+}
+
+async function translateOCR() {
+    if (!currentOCRFile) return;
+
+    const btn = document.getElementById('ocr-translate-btn');
+    const label = document.getElementById('ocr-translate-label');
+    const spinner = document.getElementById('ocr-translate-spinner');
+    btn.disabled = true;
+    label.classList.add('hidden');
+    spinner.classList.remove('hidden');
+
+    try {
+        const targetLang = document.getElementById('ocr-target-lang').value;
+        const formData = new FormData();
+        formData.append('image', currentOCRFile);
+        formData.append('target_language', targetLang);
+        formData.append('source_language', 'auto');
+
+        const resp = await fetch('/api/ocr/translate/', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        if (data.error) {
+            showToast('OCR Error: ' + data.error);
+            return;
+        }
+
+        document.getElementById('ocr-extracted-text').textContent = data.extracted_text || '';
+        document.getElementById('ocr-translated-text').textContent = data.translated_text || '';
+        document.getElementById('ocr-detected-lang').textContent = data.detected_language || 'Unknown';
+        document.getElementById('ocr-result').classList.remove('hidden');
+
+        showToast('Image translated successfully!');
+    } catch (e) {
+        showToast('Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        label.classList.remove('hidden');
+        spinner.classList.add('hidden');
+    }
+}
+
+function copyOCRTranslation() {
+    const text = document.getElementById('ocr-translated-text').textContent;
+    if (text) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
+    }
+}
+
+function clearOCR() {
+    currentOCRFile = null;
+    document.getElementById('ocr-input').value = '';
+    document.getElementById('ocr-preview').classList.add('hidden');
+    document.getElementById('ocr-lang-bar').classList.add('hidden');
+    document.getElementById('ocr-translate-btn-wrapper').classList.add('hidden');
+    document.getElementById('ocr-result').classList.add('hidden');
+}
+
+// ============================================================
+// TOAST NOTIFICATIONS
+// ============================================================
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+</script>
+</body>
+</html>
